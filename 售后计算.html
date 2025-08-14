@@ -1,0 +1,127 @@
+﻿<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>多群售后计算工具（实时计算+日期+暂存）</title>
+<style>
+    body {
+        font-family: "Microsoft YaHei", sans-serif;
+        background: #f5f5f5;
+        padding: 20px;
+    }
+    .container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        width: 500px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    textarea, input, button {
+        width: 100%;
+        padding: 8px;
+        margin: 6px 0;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+    button {
+        background: #d9534f;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+    button:hover {
+        background: #c9302c;
+    }
+    .result {
+        font-size: 16px;
+        margin-top: 10px;
+        line-height: 1.6;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>多群售后计算工具（实时计算）</h2>
+
+    <label>日期</label>
+    <input type="date" id="dateInput">
+
+    <label>输入每个群的数据（最后一个数为能收钱的号包数）</label>
+    <textarea id="groupData" rows="6" placeholder="示例：
+A群 500 300 200 100 800
+B群 200 100 50 400
+C群 600 550"></textarea>
+    
+    <button onclick="clearStorage()">清空暂存</button>
+    
+    <div class="result" id="result"></div>
+</div>
+
+<script>
+// 页面加载时恢复暂存并计算
+window.onload = function() {
+    if (localStorage.getItem("groupData")) {
+        document.getElementById("groupData").value = localStorage.getItem("groupData");
+    }
+    if (localStorage.getItem("dateInput")) {
+        document.getElementById("dateInput").value = localStorage.getItem("dateInput");
+    }
+    calculate();
+}
+
+// 监听输入变化（实时保存+计算）
+document.getElementById("groupData").addEventListener("input", function() {
+    saveData();
+    calculate();
+});
+document.getElementById("dateInput").addEventListener("input", function() {
+    saveData();
+    calculate();
+});
+
+function saveData() {
+    localStorage.setItem("groupData", document.getElementById("groupData").value);
+    localStorage.setItem("dateInput", document.getElementById("dateInput").value);
+}
+
+function calculate() {
+    let groupData = document.getElementById('groupData').value.trim();
+    let dateVal = document.getElementById('dateInput').value;
+    let lines = groupData.split(/\n/);
+    let totalAfterSale = 0;
+    let output = "";
+
+    lines.forEach(line => {
+        let parts = line.trim().split(/[\s,]+/).map(p => p.trim());
+        if (parts.length < 3) return; // 至少 群名+发包数+收钱数
+
+        let groupName = parts[0];
+        let received = parseFloat(parts[parts.length - 1]) || 0;
+        let sendSum = parts.slice(1, -1).map(n => parseFloat(n) || 0).reduce((a, b) => a + b, 0);
+        let afterSale = sendSum - received;
+
+        totalAfterSale += afterSale;
+        output += `${groupName} 发包总数：${sendSum}，收钱数：${received}，售后：${afterSale}<br>`;
+    });
+
+    if (output) {
+        output = `<b>日期：</b>${dateVal || "未填写"}<br><br>` + output;
+        output += `<br><b>总售后：${totalAfterSale}</b>`;
+    }
+
+    document.getElementById('result').innerHTML = output || "请输入数据";
+}
+
+function clearStorage() {
+    localStorage.removeItem("groupData");
+    localStorage.removeItem("dateInput");
+    document.getElementById("groupData").value = "";
+    document.getElementById("dateInput").value = "";
+    document.getElementById("result").innerHTML = "";
+}
+</script>
+
+</body>
+</html>
